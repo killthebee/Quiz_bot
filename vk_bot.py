@@ -5,7 +5,6 @@ import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 import fetch_quiz_content
 import redis_db as rdb
-import adjust_score
 import requests
 
 
@@ -81,6 +80,7 @@ def fetch_score(event, vk_api, r):
 def analyze_text(event, vk_api, q_a_pairs, r):
 
     vk_user_id = 'VK_%s'%(event.obj.user_id)
+    score_key = 'Score_%s'%(vk_user_id)
     current_question = r.get(vk_user_id)
 
     if current_question is None:
@@ -112,12 +112,13 @@ def analyze_text(event, vk_api, q_a_pairs, r):
             message=resulting_text,
             random_id=get_random_id()
         )
-        adjust_score.main(vk_user_id, score_adjustment, r)
+        r.incr(score_key, score_adjustment)
 
 
 def give_up(q_a_pairs, event, vk_api, r):
 
     vk_user_id = 'VK_%s'%(event.obj.user_id)
+    score_key = 'Score_%s'%(vk_user_id)
     current_question = r.get(vk_user_id)
 
     if current_question is None:
@@ -136,7 +137,7 @@ def give_up(q_a_pairs, event, vk_api, r):
             random_id=get_random_id()
         )
         score_adjustment = -5
-        adjust_score.main(vk_user_id, score_adjustment, r)
+        r.incr(score_key, score_adjustment)
 
 
 def fetch_new_q(q_a_pairs, event, vk_api, r):

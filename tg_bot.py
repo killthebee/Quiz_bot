@@ -6,7 +6,6 @@ import fetch_quiz_content
 import random
 import redis_db as rdb
 from functools import partial
-import adjust_score
 
 
 Q_A_PAIRS = fetch_quiz_content.main()
@@ -43,6 +42,8 @@ def analyze_answer(update, context, r):
 
     user = update.message.from_user
     tg_user_id = 'TG_%s'%(user.id)
+    score_key = 'Score_%s'%(tg_user_id)
+
     users_question = r.get(tg_user_id)
     users_answer = update.message.text
     right_answer = Q_A_PAIRS[users_question]
@@ -55,7 +56,7 @@ def analyze_answer(update, context, r):
         resulting_text = 'И это ... ПРОВАЛ БРАЧО!!!'
         score_adjustment = -10
     update.message.reply_text(resulting_text)
-    adjust_score.main(tg_user_id, score_adjustment, r)
+    r.incr(score_key, score_adjustment)
     return NEW_Q
 
 
@@ -63,6 +64,8 @@ def give_up(update, context, r):
 
     user = update.message.from_user
     tg_user_id = 'TG_%s'%(user.id)
+    score_key = 'Score_%s'%(tg_user_id)
+
     users_question = r.get(tg_user_id)
     if users_question is None:
         update.message.reply_text('Рано сдаваться!')
@@ -72,7 +75,7 @@ def give_up(update, context, r):
         update.message.reply_text(sad_text)
         r.delete(tg_user_id)
         score_adjustment = -5
-        adjust_score.main(tg_user_id, score_adjustment, r)
+        r.incr(score_key, score_adjustment)
         return NEW_Q
 
 
